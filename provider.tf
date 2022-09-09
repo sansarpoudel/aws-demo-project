@@ -4,10 +4,6 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 4.0"
     }
-#    serverscom = {
-#      source = "serverscom/serverscom"
-#      version = "0.2.3"
-#    }
   }
 }
 
@@ -16,7 +12,3 @@ provider "aws" {
   region = "us-west-2"
 }
 
-# Configure Serverscom provider
-#provider "serverscom" {
-  # Configuration options
-#}

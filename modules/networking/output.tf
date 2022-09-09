@@ -17,3 +17,7 @@ output "security_groups_ids" {
 output "public_route_table" {
   value = aws_route_table.public_route_table.id
 }
+
+output "app_load_balancer" {
+  value = aws_lb.app_load_balancer.dns_name
+}

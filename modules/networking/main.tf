@@ -175,6 +175,14 @@ resource "aws_security_group" "private_sg" {
       cidr_blocks      = var.public_subnets_cidr
     }
 
+    ingress {
+      description      = "Connection to DB "
+      from_port        = 3306
+      to_port          = 3306
+      protocol         = "tcp"
+      cidr_blocks      = var.private_subnets_cidr
+    }
+
   egress {
     from_port        = 0
     to_port          = 0
@@ -221,11 +229,12 @@ resource "aws_instance" "nginx_web_server" {
 sudo yum install -y docker
 sudo service docker start
 sudo usermod -a -G docker ec2-user
-sudo docker run -i -t -d -p80:80 --name demo-nginx nginx
+echo "Hello Welcome to Koverse. This is Sansar's awesome project" > test
+sudo docker run --name mynginx --mount type=bind,source="$(pwd)"/test,target=/usr/share/nginx/html/index.html,readonly -p 80:80 -d nginx
 EOF
 
   depends_on = [
-    aws_subnet.private_subnet
+    aws_nat_gateway.nat_gateway
   ]
 
   tags = {
@@ -243,13 +252,6 @@ resource "aws_instance" "landing_zone" {
   key_name      = aws_key_pair.ec2_ssh_key.key_name
   subnet_id     = aws_subnet.public_subnet[count.index].id
   vpc_security_group_ids = [aws_security_group.public_sg.id]
-  user_data = <<EOF
-#! /bin/bash
-sudo yum install -y docker
-sudo service docker start
-sudo usermod -a -G docker ec2-user
-sudo docker run -i -t -d -p80:80 --name demo-nginx nginx
-EOF
 
     depends_on = [
       aws_subnet.public_subnet
@@ -277,5 +279,59 @@ resource "aws_lb" "app_load_balancer" {
   }
 }
 
+###Load balancer target group####
+resource "aws_lb_target_group" "target_group" {
+  name     = "${var.environment}-target-group"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = aws_vpc.vpc.id
+
+    tags = {
+      Name        = "${var.environment}-app-load-balancer"
+      Environment = "${var.environment}"
+    }
+}
+
+# Load balancer listeners
+
+resource "aws_lb_listener" "alb_listener" {
+  load_balancer_arn = aws_lb.app_load_balancer.arn
+  port              = "80"
+  protocol          = "HTTP"
+
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.target_group.arn
+  }
+}
+
+# Target group attachment
+resource "aws_lb_target_group_attachment" "alb_tg_attachment" {
+  count            = length(aws_instance.nginx_web_server)
+  target_group_arn = aws_lb_target_group.target_group.arn
+  target_id        = aws_instance.nginx_web_server[count.index].id
+  port             = 80
+}
+
 ######RDS################
 
+resource "aws_db_instance" "rds_db" {
+  allocated_storage    = 10
+  engine               = "mysql"
+  engine_version       = "5.7"
+  instance_class       = "db.t3.micro"
+  db_name              = "${var.environment}mysql"
+  username             = "admin"
+  password             = "password"   # To do retrive a password from ssm
+  parameter_group_name = "default.mysql5.7"
+  max_allocated_storage = 100
+  skip_final_snapshot  = true
+  vpc_security_group_ids = [aws_security_group.private_sg.id]
+
+    tags = {
+      Name        = "${var.environment}-app-load-balancer"
+      Environment = "${var.environment}"
+    }
+
+}
