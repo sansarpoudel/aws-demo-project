@@ -313,9 +313,17 @@ resource "aws_lb_target_group_attachment" "alb_tg_attachment" {
   target_id        = aws_instance.nginx_web_server[count.index].id
   port             = 80
 }
+# RDS DB Subnet
+resource "aws_db_subnet_group" "db_subnet" {
+  name       = "${var.environment}-db-subnet"
+  subnet_ids = [for subnet in aws_subnet.private_subnet : subnet.id]
+
+  tags = {
+    Name = "My DB subnet group"
+  }
+}
 
 ######RDS################
-
 resource "aws_db_instance" "rds_db" {
   allocated_storage    = 10
   engine               = "mysql"
@@ -328,6 +336,7 @@ resource "aws_db_instance" "rds_db" {
   max_allocated_storage = 100
   skip_final_snapshot  = true
   vpc_security_group_ids = [aws_security_group.private_sg.id]
+  db_subnet_group_name   = aws_db_subnet_group.db_subnet.name
 
     tags = {
       Name        = "${var.environment}-app-load-balancer"
