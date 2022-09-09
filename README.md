@@ -22,7 +22,7 @@ The EC2 instance will run in private subnet. It will have a nginx docker contain
       
 ## Pre-requisties - Optional 
 
-It's a good practice to use S3 bucket as a backend to store the terraform state file. If you want to use S3 as a backend, use this module to create the S3 bucket. If not this module will use the local backend
+It's a good practice to use S3 bucket as a backend to store the terraform state file. If you want to use S3 as a backend, use this module to create the S3 bucket. [s3-backend](https://github.com/sansarpoudel/terraform-s3-backend). If not this module will use the local backend
 
 ## How to use this module
 
