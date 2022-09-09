@@ -1,2 +1,1 @@
-# aws-demo-project
-This is a demo project for various AWS Services.
+﻿# terraform-aws-vpc-configuration-setup
